@@ -77,5 +77,5 @@ Once these files somehow are accessible in the guest, via whatever method you ch
 3. Reboot the guest.
 4. When logged back in, open *Device Manager* (`devmgmt.msc`), and under *System Devices*, open the properties panel for the `VirtIO FS Device` device. Verify that the device is "functioning properly" and that the driver is correctly installed and loaded.
 5. Open *Services* (`services.msc`), and find `VirtIO-FS Service`. Right-click and select "Start" to start the service.
-6. If you wish to automatically start this service at boot, right-click and select "Properties" and scan through the menu for autostart.
+6. If you wish to automatically start this service at boot, right-click and select "Properties" and set "Startup type" to `Automatic`.
 7. The folder should now show up as a new drive, at label `Z:\`, in File Explorer.
