@@ -17,13 +17,13 @@ In `virt-manager`, use `Add Hardware > Filesystem`, change the driver to `virtio
   <address type="pci" domain="0x0000" bus="0x01" slot="0x00" function="0x0"/>
 </filesystem>
 ```
-where `HOST_DIRECTORY_PATH` is the directory on the host to passthrough, e.g. `/home/virtio-shared`, and `GUEST_MOUNT_NAME` is the drive name that will appear in the win10 guest.
+where `HOST_DIRECTORY_PATH` is the directory on the host to passthrough, e.g. `/home/virtio-shared`, and `GUEST_MOUNT_NAME` is the drive name that will appear in the guest.
 
 ---
 
 ## Guest configuration -- Linux
 
-**If guest is linux** -- Drivers may or may not come with the kernel, if not, install `virtiofs` or the relevant package for your distro. Then, simply mount `GUEST_MOUNT_NAME` with type `virtiofs` to a folder with:
+**If guest is linux** -- Drivers should come with the kernel, if not, install `virtiofs` or the relevant package for your distro. Then, simply mount `GUEST_MOUNT_NAME` with type `virtiofs` with:
 ```bash
 sudo mount -t virtiofs GUEST_MOUNT_NAME /mount/point/path
 ```
@@ -34,38 +34,30 @@ That's all there is to do. Have a blast.
 
 ## Guest configuration -- Windows -- pt.1: Getting the drivers
 
-**If guest is windows** -- drivers need to be attached to the system somehow. There are two files you will need to download, either on the host or guest, depending on which option you decide to follow. WinFSP can be downloaded [from the WinFSP github](https://github.com/winfsp/winfsp/releases/) and the virtio-win iso can be downloaded [from RedHat](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/). Select the most recent version and download the `virtio-win.iso` file.
+**If guest is windows** -- drivers need to be attached to the system somehow. There are two files you will need to download, either on the host or guest, depending on which option you decide to follow. WinFSP can be downloaded [from the WinFSP github](https://github.com/winfsp/winfsp/releases/) and the virtio windows guest tools installer can be downloaded [from RedHat](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/). Select the most recent version and download the `virtio-win-guest-tools.exe` file.
 
-- Option 1 -- Bundle both into one iso. Mount the iso to a tmpdir (this will be readonly):
-```bash
-ISOMOUNT=$(mktemp -d)
-mount -r -o loop "/path/to/virtio.iso" "$ISOMOUNT"
-```
-Next, make a second tmpdir and copy all the files to it:
+- Option 1 -- Bundle both into an iso. The steps to do this are as follows:
+
+First, make a tmpdir and copy all the files to it. Then, make the tmpdir into an iso (see [mkisofs(8)](https://linux.die.net/man/8/mkisofs) for documentation and [this StackOverflow answer](https://unix.stackexchange.com/a/760651) for flags):
 ```bash
 ISOWRITE=$(mktemp -d)
-cp -r "$ISOMOUNT/"* "$ISOWRITE"
+cp "/path/to/virtio-win-guest-tools.exe" "$ISOWRITE"
 cp "/path/to/winfsp.msi" "$ISOWRITE"
-```
-Finally, make the second tmpdir into an iso (see [mkisofs(8)](https://linux.die.net/man/8/mkisofs) for documentation and [this StackOverflow answer](https://unix.stackexchange.com/a/760651) for flags):
-```bash
-mkisofs -v -J -V "SharedFolderTools" -o bundled.iso "$ISOWRITE"
+mkisofs -v -J -V "SharedFolderGuestTools" -o shared-folder-guest-tools.iso "$ISOWRITE"
 ```
 Attach this iso to the guest in `virt-manager`.
 
-This may seem like a more convoluted method, but for me personally, it is much easier to bundle a single iso and attach it any time I fire up a new windows vm, rather than trying to remember to attach both.
+This may seem like a more convoluted method, but for me personally, it is much easier to bundle a single iso and attach it any time I fire up a new Windows vm.
 
-- Option 2 -- Burn just the WinFSP installer to an iso, like above, and attach both to the guest. This option may not be the simplest, but is the fastest and easiest in my opinion if you would rather get the files from their source.
+- Option 2 -- Enable spice USB passthrough or similar. Pause the guest, mount a USB to the host, copy these files to that USB, unmount it, then physically disconnect it. Then, unpause the guest, and plug the USB back in. It should be passed through automatically to the guest. Mount it and there should be your files.
 
-- Option 3 -- Enable spice USB passthrough or similar. Pause the guest, mount a USB to the host, copy these files to that USB, unmount it, then physically disconnect it. Then, unpause the guest, and plug the USB back in. It should be passed through automatically to the guest. In the guest, mount the virtio iso as a drive and copy the files.
-
-- Option 4 -- **Requires an internet connection in the guest.** Download these files directly in the guest. Like above, in the guest, mount the virtio iso as a drive and copy the files.
+- Option 3 -- **Requires an internet connection in the guest.** Download these two files directly in the guest. This might be the easiest, but I often prefer to not let my testbed windows VMs access the internet.
 
 | Method | Requires host internet? | Requires guest internet? |
 | ------ | ----------------------- | ------------------------ |
-| 1, 2   | Yes*                    | No                       |
-| 3      | Yes*                    | No                       |
-| 4      | No                      | Yes                      |
+| 1      | Yes*                    | No                       |
+| 2      | Yes*                    | No                       |
+| 3      | No                      | Yes                      |
 
 *\*Just get the files onto the host somehow. Download directly, or transfer from another computer.*
 
